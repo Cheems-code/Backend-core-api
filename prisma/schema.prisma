@@ -4,12 +4,74 @@
 // Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
+
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+}
+
+
+//Estados de una orden
+//Estados tranistivos de una orden desde su generacion hasta la cancelacion
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  IN_TRANSIT
+  DELIVERED
+  CANCELLED
+}
+
+//Modelo de usuario
+//Tabla con los atributos de un cliente
+model Customer {
+  id          String @id @default(uuid())
+  name        String
+  email       String @unique
+  phone       String?
+  orders      Order[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+//Modelo de una orden
+//Tabla con los atributos de una orden
+model Order {
+  id          String @id @default(uuid())
+  description String 
+  status      OrderStatus @default(PENDING)
+
+  customerId  String
+  customer    Customer @relation(fields: [customerId], references: [id])
+
+  address     Address?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+//Modelo de una direccion
+//Tabla con los atributos de una direccion
+model Address {
+  id          String @id @default(uuid())
+  street      String
+  city        String
+  reference   String?
+
+  orderId     String @unique
+  order       Order  @relation(fields: [orderId], references: [id])
+
+  createdAt   DateTime @default(now())
+}
+
+//Modelo de un usuario
+//Tabla con los atributos de un usuario
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
 }
