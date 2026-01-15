@@ -6,14 +6,20 @@ import { JwtStrategy } from './jwt.strategy';
 import { PrismaModule } from '../prisma/prisma.module';
 
 const jwtSecret = process.env.JWT_SECRET;
-const jwtExpiresIn = process.env.JWT_EXPIRES_IN;
+const expiresInRaw = process.env.JWT_EXPIRES_IN;
 
 if (!jwtSecret) {
   throw new Error('JWT_SECRET is not defined');
 }
 
-if (!jwtExpiresIn) {
+if (!expiresInRaw) {
   throw new Error('JWT_EXPIRES_IN is not defined');
+}
+
+const jwtExpiresIn = Number(expiresInRaw);
+
+if (Number.isNaN(jwtExpiresIn)) {
+  throw new Error('JWT_EXPIRES_IN must be a number');
 }
 
 @Module({
@@ -22,7 +28,7 @@ if (!jwtExpiresIn) {
     JwtModule.register({
       secret: jwtSecret,
       signOptions: {
-        expiresIn: jwtExpiresIn,
+        expiresIn: jwtExpiresIn, // ✅ number
       },
     }),
   ],
