@@ -9,10 +9,15 @@ import {
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
+import { AddressesService } from '../addresses/addresses.service';
+import { CreateAddressDto } from '../addresses/dto/create-address.dto';
 
 @Controller('orders')
 export class OrdersController {
-  constructor(private readonly ordersService: OrdersService) {}
+  constructor(
+    private readonly ordersService: OrdersService,
+    private readonly addressesService: AddressesService,
+  ) {}
 
   @Post()
   create(@Body() dto: CreateOrderDto) {
@@ -36,4 +41,16 @@ export class OrdersController {
   ) {
     return this.ordersService.updateStatus(id, dto);
   }
+
+   @Post(':id/address')
+  addAddress(
+    @Param('id') orderId: string,
+    @Body() dto: CreateAddressDto,
+  ) {
+    return this.addressesService.create({
+      ...dto,
+      orderId,
+    });
+  }
+
 }
