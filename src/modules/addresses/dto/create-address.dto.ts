@@ -1,4 +1,4 @@
-import { IsString, IsUUID, MinLength } from 'class-validator';
+import { IsOptional, IsString, IsUUID, MinLength } from 'class-validator';
 
 export class CreateAddressDto {
   @IsString()
@@ -12,6 +12,7 @@ export class CreateAddressDto {
   @IsString()
   reference?: string;
 
+  @IsOptional()
   @IsUUID()
   orderId: string;
 }
