@@ -4,6 +4,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { Role } from '@prisma/client';
 
 @Injectable()
 export class AuthService {
@@ -50,18 +51,22 @@ export class AuthService {
   private generateToken(user: {
     id: string;
     email: string;
-    role: string;
-    customerId?: string;
+    role: Role;
+    customerId?: string | null;
   }) {
-    const payload = {
+    const payload: any = {
       sub: user.id,
       email: user.email,
       role: user.role,
-      customerId: user.customerId,
     };
+
+    if (user.customerId) {
+      payload.customerId = user.customerId;
+    }
 
     return {
       access_token: this.jwtService.sign(payload),
     };
-  }
+}
+
 }
