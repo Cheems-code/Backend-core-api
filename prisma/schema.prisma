@@ -36,16 +36,16 @@ enum Role {
 //Modelo de cliente
 //Tabla con los atributos de un cliente
 model Customer {
-  id          String @id @default(uuid())
-  name        String
-  email       String @unique
-  phone       String?
+  id        String @id @default(uuid())
+  name      String
+  email     String @unique
+  phone     String?
 
-  orders      Order[]
-  user        User?
+  orders    Order[]
+  user      User?
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 //Modelo de una orden
@@ -86,8 +86,8 @@ model User {
   password  String
   role      Role     @default(USER)
 
-  customerId String?
-  customer   Customer?
+  customerId String?   @unique
+  customer   Customer? @relation(fields: [customerId], references: [id])
 
   createdAt DateTime @default(now())
 }
