@@ -27,7 +27,7 @@ export class AddressesService {
     }
 
     // 🔐 Ownership: USER solo puede agregar address a su orden
-    if (user.role !== Role.ADMIN && order.customerId !== user.sub) {
+    if (user.role !== Role.ADMIN && order.customerId !== user.customerId) {
       throw new ForbiddenException(
         'You do not own this order',
       );
