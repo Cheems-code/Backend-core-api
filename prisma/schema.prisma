@@ -33,14 +33,16 @@ enum Role {
 }
 
 
-//Modelo de usuario
+//Modelo de cliente
 //Tabla con los atributos de un cliente
 model Customer {
   id          String @id @default(uuid())
   name        String
   email       String @unique
   phone       String?
+
   orders      Order[]
+  user        User?
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -83,5 +85,9 @@ model User {
   email     String   @unique
   password  String
   role      Role     @default(USER)
+
+  customerId String?
+  customer   Customer?
+
   createdAt DateTime @default(now())
 }

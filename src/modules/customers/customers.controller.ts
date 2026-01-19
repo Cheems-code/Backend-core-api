@@ -7,11 +7,11 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { Role } from '../common/enums/role.enum';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(Role.ADMIN)
 @Controller('customers')
 export class CustomersController {
   constructor(private readonly customersService: CustomersService) {}
 
-  @Roles(Role.ADMIN)
   @Post()
   create(@Body() dto: CreateCustomerDto) {
     return this.customersService.create(dto);

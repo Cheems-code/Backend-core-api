@@ -6,6 +6,7 @@ import {
   Param,
   Body,
   UseGuards,
+  Req,
 } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
@@ -13,6 +14,9 @@ import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { AddressesService } from '../addresses/addresses.service';
 import { CreateAddressDto } from '../addresses/dto/create-address.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../common/guards/roles.guard';
+import { Roles } from '../common/decorators/roles.decorator';
+import { Role } from '../common/enums/role.enum';
 
 @UseGuards(JwtAuthGuard)
 @Controller('orders')
@@ -22,21 +26,35 @@ export class OrdersController {
     private readonly addressesService: AddressesService,
   ) {}
 
-  @Post()
-  create(@Body() dto: CreateOrderDto) {
-    return this.ordersService.create(dto);
+  // 🔹 USER + ADMIN → ver sus propias órdenes
+  @Get('me')
+  findMyOrders(@Req() req) {
+    return this.ordersService.findByCustomer(req.user.customerId);
   }
 
+  // 🔹 USER + ADMIN → crear orden
+  @Post()
+  create(@Req() req, @Body() dto: CreateOrderDto) {
+    return this.ordersService.create(req.user.customerId, dto);
+  }
+
+  // 🔒 ADMIN ONLY → ver todas las órdenes
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
   @Get()
   findAll() {
     return this.ordersService.findAll();
   }
 
+  // 🔹 USER + ADMIN → ownership en service
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.ordersService.findOne(id);
+  findOne(@Req() req, @Param('id') id: string) {
+    return this.ordersService.findOne(id, req.user);
   }
 
+  // 🔒 ADMIN ONLY → cambiar estado
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
   @Patch(':id/status')
   updateStatus(
     @Param('id') id: string,
@@ -45,15 +63,14 @@ export class OrdersController {
     return this.ordersService.updateStatus(id, dto);
   }
 
-   @Post(':id/address')
+  // 🔹 USER + ADMIN → ownership en service
+  @Post(':id/address')
   addAddress(
-    @Param('id') orderId: string,
-    @Body() dto: CreateAddressDto,
-  ) {
-    return this.addressesService.create({
-      ...dto,
-      orderId,
-    });
-  }
+      @Req() req,
+      @Param('id') orderId: string,
+      @Body() dto: CreateAddressDto,
+    ) {
+      return this.addressesService.create(dto, orderId, req.user);
+    }
 
 }

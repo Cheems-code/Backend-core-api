@@ -51,11 +51,13 @@ export class AuthService {
     id: string;
     email: string;
     role: string;
+    customerId?: string;
   }) {
     const payload = {
       sub: user.id,
       email: user.email,
       role: user.role,
+      customerId: user.customerId,
     };
 
     return {

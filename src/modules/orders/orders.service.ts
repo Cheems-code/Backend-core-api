@@ -1,48 +1,54 @@
 import {
   Injectable,
+  ForbiddenException,
   NotFoundException,
-  BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
-import { OrderStatus } from '@prisma/client';
+import { Role } from '../common/enums/role.enum';
 
 @Injectable()
 export class OrdersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) {}
 
-  async create(dto: CreateOrderDto) {
-    const customer = await this.prisma.customer.findUnique({
-      where: { id: dto.customerId },
-    });
-
-    if (!customer) {
-      throw new NotFoundException('Customer not found');
-    }
-
+  // 🔹 Crear orden (USER / ADMIN)
+  async create(userId: string, dto: CreateOrderDto) {
     return this.prisma.order.create({
       data: {
         description: dto.description,
-        customerId: dto.customerId,
+        customerId: userId,
       },
     });
   }
 
-  async findAll() {
+  // 🔹 USER → solo sus órdenes
+  async findByCustomer(userId: string) {
     return this.prisma.order.findMany({
+      where: {
+        customerId: userId,
+      },
       include: {
-        customer: true,
         address: true,
       },
     });
   }
 
-  async findOne(id: string) {
-    const order = await this.prisma.order.findUnique({
-      where: { id },
+  // 🔒 ADMIN → todas las órdenes
+  async findAll() {
+    return this.prisma.order.findMany({
       include: {
+        address: true,
         customer: true,
+      },
+    });
+  }
+
+  // 🔹 USER (ownership) / ADMIN
+  async findOne(orderId: string, user: any) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
         address: true,
       },
     });
@@ -51,38 +57,31 @@ export class OrdersService {
       throw new NotFoundException('Order not found');
     }
 
+    // Ownership check
+    if (user.role !== Role.ADMIN && order.customerId !== user.customerId) {
+      throw new ForbiddenException(
+        'You do not have access to this order',
+      );
+    }
+
     return order;
   }
 
-  async updateStatus(id: string, dto: UpdateOrderStatusDto) {
-    const order = await this.findOne(id);
+  // 🔒 ADMIN ONLY 
+  async updateStatus(orderId: string, dto: UpdateOrderStatusDto) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+    });
 
-    this.validateStatusTransition(order.status, dto.status);
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
 
     return this.prisma.order.update({
-      where: { id },
+      where: { id: orderId },
       data: {
         status: dto.status,
       },
     });
-  }
-
-  private validateStatusTransition(
-    current: OrderStatus,
-    next: OrderStatus,
-  ) {
-    const allowedTransitions: Record<OrderStatus, OrderStatus[]> = {
-      PENDING: [OrderStatus.CONFIRMED, OrderStatus.CANCELLED],
-      CONFIRMED: [OrderStatus.IN_TRANSIT, OrderStatus.CANCELLED],
-      IN_TRANSIT: [OrderStatus.DELIVERED],
-      DELIVERED: [],
-      CANCELLED: [],
-    };
-
-    if (!allowedTransitions[current].includes(next)) {
-      throw new BadRequestException(
-        `Invalid status transition from ${current} to ${next}`,
-      );
-    }
   }
 }
