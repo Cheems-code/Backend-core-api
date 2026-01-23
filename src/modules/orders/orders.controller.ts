@@ -28,16 +28,10 @@ export class OrdersController {
     private readonly addressesService: AddressesService,
   ) {}
 
-  // 🔹 USER + ADMIN → ver sus propias órdenes
-  @Get('me')
-  findMyOrders(@Req() req) {
-    return this.ordersService.findByCustomer(req.user.customerId);
-  }
-
   // 🔹 USER + ADMIN → crear orden
   @Post()
   create(@Req() req, @Body() dto: CreateOrderDto) {
-    return this.ordersService.create(req.user.customerId, dto);
+    return this.ordersService.create(req.user.sub, dto);
   }
 
   // 🔒 ADMIN ONLY → ver todas las órdenes

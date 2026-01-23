@@ -12,29 +12,40 @@ import { Role } from '../common/enums/role.enum';
 export class OrdersService {
   constructor(private prisma: PrismaService) {}
 
-  // 🔹 Crear orden (USER / ADMIN)
-  async create(userId: string, dto: CreateOrderDto) {
+  // Crear orden (USER / ADMIN)
+  async create(
+    user: { id: string; role: Role },
+    dto: CreateOrderDto,
+  ) {
+    // 1 Validar que el customer exista
+    const customer = await this.prisma.customer.findUnique({
+      where: { id: dto.customerId },
+    });
+
+    if (!customer) {
+      throw new NotFoundException('Customer not found');
+    }
+
+    // 2 Crear la orden
     return this.prisma.order.create({
       data: {
         description: dto.description,
-        customerId: userId,
+        customerId: dto.customerId,
       },
     });
   }
 
-  // 🔹 USER → solo sus órdenes
-  async findByCustomer(userId: string) {
+  // Órdenes de un cliente específico
+  async findByCustomer(customerId: string) {
     return this.prisma.order.findMany({
-      where: {
-        customerId: userId,
-      },
+      where: { customerId },
       include: {
         address: true,
       },
     });
   }
 
-  // 🔒 ADMIN → todas las órdenes
+  // ADMIN → todas las órdenes
   async findAll() {
     return this.prisma.order.findMany({
       include: {
@@ -44,12 +55,13 @@ export class OrdersService {
     });
   }
 
-  // 🔹 USER (ownership) / ADMIN
+  // ADMIN o acceso controlado
   async findOne(orderId: string, user: any) {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
       include: {
         address: true,
+        customer: true,
       },
     });
 
@@ -57,8 +69,8 @@ export class OrdersService {
       throw new NotFoundException('Order not found');
     }
 
-    // Ownership check
-    if (user.role !== Role.ADMIN && order.customerId !== user.customerId) {
+    // Solo ADMIN puede ver cualquier orden
+    if (user.role !== Role.ADMIN) {
       throw new ForbiddenException(
         'You do not have access to this order',
       );
@@ -67,7 +79,7 @@ export class OrdersService {
     return order;
   }
 
-  // 🔒 ADMIN ONLY 
+  // ADMIN ONLY
   async updateStatus(orderId: string, dto: UpdateOrderStatusDto) {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },

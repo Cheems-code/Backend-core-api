@@ -42,7 +42,6 @@ model Customer {
   phone     String?
 
   orders    Order[]
-  user      User?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -85,9 +84,6 @@ model User {
   email     String   @unique
   password  String
   role      Role     @default(USER)
-
-  customerId String?   @unique
-  customer   Customer? @relation(fields: [customerId], references: [id])
 
   createdAt DateTime @default(now())
 }

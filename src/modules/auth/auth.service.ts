@@ -52,18 +52,12 @@ export class AuthService {
     id: string;
     email: string;
     role: Role;
-    customerId?: string | null;
   }) {
     const payload: any = {
       sub: user.id,
       email: user.email,
       role: user.role,
     };
-
-    if (user.customerId) {
-      payload.customerId = user.customerId;
-    }
-
     return {
       access_token: this.jwtService.sign(payload),
     };
