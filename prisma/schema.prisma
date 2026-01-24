@@ -85,5 +85,23 @@ model User {
   password  String
   role      Role     @default(USER)
 
+  refreshToken RefreshToken[]
+
   createdAt DateTime @default(now())
+}
+
+//Modelo de un token de refresh
+//Tabla con los atributos de un token de refresh
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   // token hasheado
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  revoked   Boolean  @default(false)
+  expiresAt DateTime
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
