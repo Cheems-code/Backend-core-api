@@ -6,6 +6,8 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { Role } from '@prisma/client';
 
+import * as crypto from 'crypto';
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -13,6 +15,7 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
+  // Registro de usuario
   async register(dto: RegisterDto) {
     const hashedPassword = await bcrypt.hash(dto.password, 10);
 
@@ -24,9 +27,10 @@ export class AuthService {
       },
     });
 
-    return this.generateToken(user);
+    return this.issueTokens(user);
   }
 
+  // Login de usuario
   async login(dto: LoginDto) {
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
@@ -45,22 +49,80 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    return this.generateToken(user);
+    return this.issueTokens(user);
   }
 
-  private generateToken(user: {
+  //Nuevo metodo para generar token
+  private async issueTokens(user: {
+      id: string;
+      email: string;
+      role: Role;
+  }) {
+    const accessToken = this.generateAccessToken(user);
+    const refreshToken = this.generateRefreshToken(user.id);
+
+    //Persistimos refresh token hasheado
+    await this.saveRefreshToken(user.id, refreshToken);
+
+    return {
+      access_token: accessToken,
+      refresh_token: refreshToken,
+    };
+  }
+
+  //Nuevo access token de vida corta
+  private generateAccessToken(user: {
     id: string;
     email: string;
     role: Role;
-  }) {
-    const payload: any = {
-      sub: user.id,
-      email: user.email,
-      role: user.role,
-    };
-    return {
-      access_token: this.jwtService.sign(payload),
-    };
-}
+  }): string {
+    return this.jwtService.sign(
+      {
+        sub: user.id,
+        email: user.email,
+        role: user.role,
+      },
+      {
+        expiresIn: '15m',
+      },
+    );
+  }
+
+  //Nuevo refresh token de vida larga
+  private generateRefreshToken(userId: string): string {
+    return this.jwtService.sign(
+      { sub: userId },
+      {
+        secret: process.env.JWT_REFRESH_SECRET,
+        expiresIn: '7d',
+      },
+    );
+  }
+
+  //Guardar refresh token hasheado en la DB
+  private async saveRefreshToken(
+    userId: string,
+    refreshToken: string,
+  ) {
+    const hashedToken = this.hashToken(refreshToken);
+
+    await this.prisma.refreshToken.create({
+      data: {
+        token: hashedToken,
+        userId,
+        expiresAt: new Date(
+          Date.now() + 7 * 24 * 60 * 60 * 1000,
+        ),
+      },
+    });
+  }
+
+  //Hashing del token
+  private hashToken(token: string): string {
+    return crypto
+      .createHash('sha256')
+      .update(token)
+      .digest('hex');
+  }
 
 }

@@ -28,7 +28,7 @@ if (Number.isNaN(jwtExpiresIn)) {
     JwtModule.register({
       secret: jwtSecret,
       signOptions: {
-        expiresIn: jwtExpiresIn, // ✅ number
+        expiresIn: jwtExpiresIn,
       },
     }),
   ],
