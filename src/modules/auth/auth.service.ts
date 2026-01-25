@@ -128,7 +128,10 @@ export class AuthService {
 
     const storedToken =
       await this.prisma.refreshToken.findFirst({
-        where: { token: hashedToken },
+        where: { 
+          token: hashedToken,
+          revoked: false,
+         },
         include: { user: true },
       });
 
@@ -140,11 +143,13 @@ export class AuthService {
       throw new UnauthorizedException('Refresh token expired');
     }
 
-    //ROTACIÓN: eliminamos SOLO el token usado
-    await this.prisma.refreshToken.delete({
+    //Revocamos el token usado
+    await this.prisma.refreshToken.update({
       where: { id: storedToken.id },
+      data: {revoked: true }
     });
 
+    // Emitimos nuevos tokens
     return this.issueTokens(storedToken.user);
   }
 
