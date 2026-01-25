@@ -59,14 +59,22 @@ export class AuthService {
       role: Role;
   }) {
     const accessToken = this.generateAccessToken(user);
-    const refreshToken = this.generateRefreshToken(user.id);
+    const refreshToken = this.generateRefreshToken();
 
-    //Persistimos refresh token hasheado
-    await this.saveRefreshToken(user.id, refreshToken);
+      //Rotación: eliminamos tokens antiguos
+      await this.prisma.refreshToken.deleteMany({
+        where: { userId: user.id },
+    });
+
+    // Guardamos refresh token hasheado
+    await this.saveRefreshToken(
+        user.id,
+        refreshToken,
+    );
 
     return {
-      access_token: accessToken,
-      refresh_token: refreshToken,
+        access_token: accessToken,
+        refresh_token: refreshToken,
     };
   }
 
@@ -89,14 +97,8 @@ export class AuthService {
   }
 
   //Nuevo refresh token de vida larga
-  private generateRefreshToken(userId: string): string {
-    return this.jwtService.sign(
-      { sub: userId },
-      {
-        secret: process.env.JWT_REFRESH_SECRET,
-        expiresIn: '7d',
-      },
-    );
+  private generateRefreshToken(): string {
+    return crypto.randomBytes(64).toString('hex');
   }
 
   //Guardar refresh token hasheado en la DB
