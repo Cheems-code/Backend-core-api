@@ -153,6 +153,22 @@ export class AuthService {
     return this.issueTokens(storedToken.user);
   }
 
+  //Logout de usuario
+  async logout(refreshToken: string) {
+  const hashedToken = this.hashToken(refreshToken);
+
+  await this.prisma.refreshToken.updateMany({
+    where: {
+      token: hashedToken,
+      revoked: false,
+    },
+    data: {
+      revoked: true,
+    },
+  });
+
+  return { message: 'Logged out successfully' };
+}
 
 
 }

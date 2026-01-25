@@ -25,6 +25,11 @@ export class AuthController {
     return this.authService.login(dto);
   }
 
+  @Post('logout')
+    async logout(@Body('refresh_token') refreshToken: string) {
+      return this.authService.logout(refreshToken);
+}
+
   @Post('refresh')
   async refresh(@Body('refresh_token') token: string) {
     return this.authService.refreshTokens(token);
