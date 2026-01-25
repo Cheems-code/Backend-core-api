@@ -61,11 +61,6 @@ export class AuthService {
     const accessToken = this.generateAccessToken(user);
     const refreshToken = this.generateRefreshToken();
 
-      //Rotación: eliminamos tokens antiguos
-      await this.prisma.refreshToken.deleteMany({
-        where: { userId: user.id },
-    });
-
     // Guardamos refresh token hasheado
     await this.saveRefreshToken(
         user.id,
@@ -126,5 +121,33 @@ export class AuthService {
       .update(token)
       .digest('hex');
   }
+
+  //Refrescar tokens
+  async refreshTokens(refreshToken: string) {
+    const hashedToken = this.hashToken(refreshToken);
+
+    const storedToken =
+      await this.prisma.refreshToken.findFirst({
+        where: { token: hashedToken },
+        include: { user: true },
+      });
+
+    if (!storedToken) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    if (storedToken.expiresAt < new Date()) {
+      throw new UnauthorizedException('Refresh token expired');
+    }
+
+    //ROTACIÓN: eliminamos SOLO el token usado
+    await this.prisma.refreshToken.delete({
+      where: { id: storedToken.id },
+    });
+
+    return this.issueTokens(storedToken.user);
+  }
+
+
 
 }
