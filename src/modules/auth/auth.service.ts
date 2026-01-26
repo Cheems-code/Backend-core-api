@@ -126,32 +126,57 @@ export class AuthService {
   async refreshTokens(refreshToken: string) {
     const hashedToken = this.hashToken(refreshToken);
 
-    const storedToken =
-      await this.prisma.refreshToken.findFirst({
-        where: { 
-          token: hashedToken,
-          revoked: false,
-         },
-        include: { user: true },
-      });
+    const storedToken = await this.prisma.refreshToken.findFirst({
+      where: {
+        token: hashedToken,
+      },
+    });
 
+    //No existe
     if (!storedToken) {
       throw new UnauthorizedException('Invalid refresh token');
     }
 
+    //REUSE DETECTED
+    if (storedToken.revoked) {
+        //Invalidamos TODAS las sesiones del usuario
+        await this.prisma.refreshToken.updateMany({
+          where: {
+            userId: storedToken.userId,
+            revoked: false,
+          },
+          data: {
+            revoked: true,
+          },
+        });
+
+      throw new UnauthorizedException(
+        'Refresh token reuse detected. Session invalidated.',
+      );
+    }
+
+    //Expirado
     if (storedToken.expiresAt < new Date()) {
       throw new UnauthorizedException('Refresh token expired');
     }
 
-    //Revocamos el token usado
+    //Rotación normal
     await this.prisma.refreshToken.update({
-      where: { id: storedToken.id },
-      data: {revoked: true }
+        where: { id: storedToken.id },
+        data: { revoked: true },
+      });
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: storedToken.userId },
     });
 
-    // Emitimos nuevos tokens
-    return this.issueTokens(storedToken.user);
-  }
+    if (!user) {
+      throw new UnauthorizedException();
+    }
+
+    return this.issueTokens(user);
+}
+
 
   //Logout de usuario
   async logout(refreshToken: string) {
@@ -166,6 +191,8 @@ export class AuthService {
       revoked: true,
     },
   });
+
+
 
   return { message: 'Logged out successfully' };
 }
