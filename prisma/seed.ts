@@ -21,6 +21,11 @@ async function main() {
     return
   }
 
+  if (process.env.SEED_ENABLED !== 'true') {
+    console.log('⛔ Seed disabled.')
+    return
+  }
+
   const hashedPassword = await bcrypt.hash(password, 12)
 
   await prisma.user.create({
