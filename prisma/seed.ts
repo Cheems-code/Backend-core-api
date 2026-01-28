@@ -12,8 +12,8 @@ async function main() {
     return
   }
 
-  const existingAdmin = await prisma.user.findFirst({
-    where: { role: Role.ADMIN },
+  const existingAdmin = await prisma.user.findUnique({
+    where: { email },
   })
 
   if (existingAdmin) {
