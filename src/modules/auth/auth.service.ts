@@ -7,12 +7,14 @@ import { LoginDto } from './dto/login.dto';
 import { Role } from '@prisma/client';
 
 import * as crypto from 'crypto';
+import { SecurityLogService } from '../security/security-log.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
+    private securityLogService: SecurityLogService,
   ) {}
 
   // Registro de usuario
@@ -37,6 +39,10 @@ export class AuthService {
     });
 
     if (!user) {
+      this.securityLogService.log({
+        type: 'FAILED_LOGIN_USER_NOT_FOUND',
+        ip: 'unknown',
+      });
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -46,6 +52,10 @@ export class AuthService {
     );
 
     if (!isPasswordValid) {
+      this.securityLogService.log({
+        type: 'FAILED_LOGIN_INVALID_PASSWORD',
+        userId: user.id,
+      })
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -134,11 +144,17 @@ export class AuthService {
 
     //No existe
     if (!storedToken) {
+      this.securityLogService.log({
+        type: 'FAILED_REFRESH_TOKEN_NOT_FOUND',
+      });
       throw new UnauthorizedException('Invalid refresh token');
     }
 
     //REUSE DETECTED
     if (storedToken.revoked) {
+      this.securityLogService.log({
+        type: 'INVALID_REFRESH_TOKEN'
+      });
         //Invalidamos TODAS las sesiones del usuario
         await this.prisma.refreshToken.updateMany({
           where: {
