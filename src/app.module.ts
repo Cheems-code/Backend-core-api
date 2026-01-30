@@ -7,6 +7,7 @@ import { CustomersModule } from './modules/customers/customers.module';
 import { OrdersModule } from './modules/orders/orders.module';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
+import { SecurityModule } from './modules/security/security.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { APP_GUARD } from '@nestjs/core';
   AuthModule,
   CustomersModule,
   OrdersModule,
+  SecurityModule,
 
   ThrottlerModule.forRoot({
     throttlers: [
