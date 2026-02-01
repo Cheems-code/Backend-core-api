@@ -4,6 +4,7 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { PrismaModule } from '../../prisma/prisma.module';
+import { SecurityModule } from '../security/security.module';
 
 const jwtSecret = process.env.JWT_SECRET;
 const expiresInRaw = process.env.JWT_EXPIRES_IN;
@@ -31,6 +32,7 @@ if (Number.isNaN(jwtExpiresIn)) {
         expiresIn: jwtExpiresIn,
       },
     }),
+    SecurityModule,
   ],
   providers: [AuthService, JwtStrategy],
   controllers: [AuthController],
